@@ -31,7 +31,7 @@ def format_transcript(transcript):
     for entry in transcript:
         speaker = entry.get('speaker')
         if speaker and speaker != previous_speaker:
-            formatted_text += "\n"  # New line for a new speaker...kind of
+            formatted_text += "\n"  # New line for a new speaker!
             previous_speaker = speaker
         text = entry['text']
         formatted_text += fill(text, width=80) + "\n"
