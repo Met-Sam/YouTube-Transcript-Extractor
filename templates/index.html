@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Transcript Extractor</title>
+</head>
+<body>
+    <h2>YouTube Transcript Extractor</h2>
+    <input type="text" id="youtube-url" placeholder="Enter YouTube URL" />
+    <input type="number" id="duration" placeholder="Duration in seconds" />
+    <button onclick="fetchTranscript()">Get Transcript</button>
+    <pre id="transcript"></pre>
+
+    <script>
+        function fetchTranscript() {
+            const url = document.getElementById('youtube-url').value;
+            const duration = document.getElementById('duration').value;
+
+            fetch('/get_transcript', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url, duration }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('transcript').textContent = data.transcript;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

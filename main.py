@@ -1,28 +1,23 @@
+from flask import Flask, request, jsonify, render_template
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
 from textwrap import fill
 
+# Your existing Python functions
 def extract_video_id(url):
     if "youtu.be" in url:
-        # Extracting ID from the shortened format URL (https://youtu.be/VIDEO_ID)
         id_pattern = r"youtu\.be\/([^?&]*)"
         match = re.search(id_pattern, url)
         return match.group(1) if match else None
     else:
-        # Extracting ID from the standard format URL (https://www.youtube.com/watch?v=VIDEO_ID)
         id_pattern = r"(?<=v=)[^&#]+"
         match = re.search(id_pattern, url)
         return match.group(0) if match else None
 
 def parse_start_time_from_url(url):
-    # Parsing the timestamp from the URL for both formats
     time_pattern = r"[?&]t=(\d+)s?"
     match = re.search(time_pattern, url)
-
-    if match:
-        return int(match.group(1))
-    else:
-        return 0
+    return int(match.group(1)) if match else 0
 
 def format_transcript(transcript):
     formatted_text = ""
@@ -31,7 +26,7 @@ def format_transcript(transcript):
     for entry in transcript:
         speaker = entry.get('speaker')
         if speaker and speaker != previous_speaker:
-            formatted_text += "\n"  # New line for a new speaker!
+            formatted_text += "\n"
             previous_speaker = speaker
         text = entry['text']
         formatted_text += fill(text, width=80) + "\n"
@@ -64,29 +59,24 @@ def get_transcript(video_id, start_time, duration):
 
     return format_transcript(relevant_transcript)
 
-def save_transcript_to_file(transcript, filename="transcript.txt"):
-    if transcript:
-        with open(filename, "w") as file:
-            file.write(transcript)
-        print(f"The transcript has been saved to {filename}.")
-    else:
-        print("No transcript to save.")
+# Flask app setup
+app = Flask(__name__)
 
-def main():
-    url = input("Enter the YouTube URL with timestamp: ")
-    duration = int(input("Enter the duration for the transcript (in seconds): "))
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/get_transcript', methods=['POST'])
+def get_transcript_route():
+    data = request.json
+    url = data['url']
+    duration = int(data['duration'])
 
     video_id = extract_video_id(url)
     start_time = parse_start_time_from_url(url)
-
     transcript = get_transcript(video_id, start_time, duration)
 
-    if transcript:
-        print("Transcript:", transcript)
-    else:
-        print("No transcript available for the provided URL and timestamp.")
+    return jsonify({'transcript': transcript})
 
-    save_transcript_to_file(transcript)
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
