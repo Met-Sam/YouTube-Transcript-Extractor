@@ -5,6 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transcript Generator</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        function fetchAndCopyTranscript() {
+            const duration = document.getElementById('duration').value;
+            const captureBefore = document.getElementById('capture-before').checked;
+            
+            if (!duration) {
+                showNotification('Add Duration', true);
+                return;
+            }
+
+            navigator.clipboard.readText().then(url => {
+                fetch('/get_transcript', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url, duration, captureBefore }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const transcript = data.transcript || 'No transcript found.';
+                    document.getElementById('transcript').value = transcript;
+                    navigator.clipboard.writeText(transcript).then(() => {
+                        showNotification('Copied Transcript', false);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error fetching transcript', true);
+                });
+            }).catch(err => {
+                console.error('Failed to read clipboard contents:', err);
+                showNotification('Error reading clipboard', true);
+            });
+        }
+
+        function showNotification(message, isError) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = isError ? 'notification error fade-out' : 'notification fade-out';
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+                notification.className = 'notification';
+            }, 2500);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -12,44 +60,15 @@
             <h1>Generate Transcripts</h1>
         </header>
         <div class="form-container">
-            <input type="text" id="youtube-url" placeholder="Enter YouTube URL">
-            <input type="number" id="duration" placeholder="Duration in seconds">
-            <button id="fetch-button">Get Transcript</button>
-            <button id="copy-button">Copy Transcript</button>
-            <div id="transcript" style="white-space: pre-wrap;"></div>
+            <label for="duration">Duration (in seconds):</label>
+            <input type="number" id="duration" placeholder="Enter duration" min="1">
+            <label for="capture-before">Capture Before Timestamp:</label>
+            <input type="checkbox" id="capture-before">
+            <button onclick="fetchAndCopyTranscript()">Get Transcript</button>
+            <textarea id="transcript" rows="10" readonly></textarea>
         </div>
     </div>
 
-    <script>
-        document.getElementById('fetch-button').addEventListener('click', function() {
-            var url = document.getElementById('youtube-url').value;
-            var duration = document.getElementById('duration').value;
-
-            fetch('/get_transcript', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url: url, duration: duration }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('transcript').textContent = data.transcript || 'No transcript found.';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('transcript').textContent = 'Error fetching transcript.';
-            });
-        });
-
-        document.getElementById('copy-button').addEventListener('click', function() {
-            var transcript = document.getElementById('transcript').textContent;
-            navigator.clipboard.writeText(transcript).then(function() {
-                alert('Transcript copied to clipboard!');
-            }, function(err) {
-                console.error('Could not copy transcript: ', err);
-            });
-        });
-    </script>
+    <div id="notification" class="notification"></div>
 </body>
 </html>
