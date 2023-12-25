@@ -9,33 +9,48 @@ function fetchAndCopyTranscript() {
         return;
     }
 
-    // Use the stored URL if it exists; otherwise, read from the clipboard
-    const urlPromise = storedURL ? Promise.resolve(storedURL) : navigator.clipboard.readText();
-
-    urlPromise.then(url => {
-        // Check if the URL is different from the stored one
-        if (url !== storedURL) {
-            storedURL = url; // Update the stored URL if it's a new one
-        }
-        fetch('/get_transcript', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: storedURL, duration, captureBefore }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            const transcript = data.transcript || 'No transcript found.';
-            document.getElementById('transcript').value = transcript;
-            showNotification('Transcript Ready', false);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Error fetching transcript', true);
+    if (!storedURL) {
+        navigator.clipboard.readText().then(clipboardContent => {
+            if (clipboardContent && clipboardContent.includes('youtube.com')) {
+                storedURL = clipboardContent;
+            }
+            fetchTranscript(storedURL, duration, captureBefore);
+        }).catch(err => {
+            console.error('Failed to read clipboard contents:', err);
+            showNotification('Error reading clipboard', true);
         });
-    }).catch(err => {
-        console.error('Failed to read clipboard contents:', err);
-        showNotification('Error reading clipboard', true);
+    } else {
+        fetchTranscript(storedURL, duration, captureBefore);
+    }
+}
+
+function fetchTranscript(url, duration, captureBefore) {
+    if (!url) {
+        showNotification('No URL found', true);
+        return;
+    }
+
+    fetch('/get_transcript', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, duration, captureBefore }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.transcript) {
+            document.getElementById('transcript').value = data.transcript;
+        } else {
+            showNotification('No transcript found', true);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error fetching transcript', true);
     });
+}
+
+function showNotification(message, isError) {
+    // ... (existing notification code)
 }
