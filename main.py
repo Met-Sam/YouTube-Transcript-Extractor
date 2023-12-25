@@ -9,7 +9,11 @@ from textwrap import fill
 app = Flask(__name__)
 
 # Set OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+#openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
 
 # Function to extract video ID from URL
 def extract_video_id(url):
@@ -72,31 +76,34 @@ def get_transcript(video_id, start_time, duration):
 
 
 
+
+
 # Function to clean up transcript using GPT
 def get_cleaned_transcript(raw_transcript):
-    if not raw_transcript:
-        print("Empty transcript; skipping GPT cleanup.")
-        return raw_transcript
-
-    print("Raw Transcript for Cleanup:", raw_transcript)  # Debug print to confirm raw transcript
-
     try:
-        # OpenAI API Call for transcript cleanup
-        response = openai.Completion.create(
-            engine="text-davinci-003",  # Choose your preferred model
-            prompt=(f"Clean the following transcript and ensure it has "
-                    "punctuations and proper capitalizations:\n\n"
-                    f"{raw_transcript}\n\n###\n\n"),
-            max_tokens=2048  # Adjust based on your requirement
+        # Construct the prompt for the GPT-3 model
+        prompt = (f"Clean the following transcript and ensure it has "
+                  "punctuations and proper capitalizations:\n\n"
+                  f"{raw_transcript}\n\n###\n\n")
+
+        # Request the model to clean up the transcript
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        cleaned_transcript = response.choices[0].text.strip()
-        print("Cleaned Transcript:", cleaned_transcript)  # Debug print to confirm cleaned transcript
+        # Extract the content from the response
+        cleaned_transcript = response.choices[0].message.content.strip()
+        print("Cleaned Transcript:", cleaned_transcript)  # Debugging print statement
 
+        # Return the cleaned transcript
         return cleaned_transcript
+
     except Exception as e:
+        # Catch and print any exception that occurs
         print(f"Error in GPT-based cleanup: {e}")
         return raw_transcript
+
 
 
 
